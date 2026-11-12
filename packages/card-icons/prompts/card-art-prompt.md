@@ -108,8 +108,9 @@ value structure and placement. The attached image still goes with it.
 ## Filled paste block: one representative card
 
 `BRA-01`, brand deck, figure treatment at 1.4 in. Copy everything between the
-rules into Gemini. This block is ready as it is, with no reference image; the
-attachment step is marked for when you have chosen a family reference.
+rules into Gemini; the block ends at the last negative line. The attachment step
+is marked just after it and is not part of the paste. This block is ready as it
+is, with no reference image.
 
 ---
 
@@ -142,12 +143,16 @@ background and no off-white ground. Do not put detail in the quiet zone. Do not
 use a colour outside the palette. Do not fill more than 45% of the square. Do
 not sign the image.
 
---- ATTACHMENT STEP ---
-When you have chosen a family reference, attach that image file to this message
-with the attach button. Then replace the "Reference image" line with:
-"Reference image: attached. Keep its palette shares, stroke weight, ink ratio,
-line endings, level of detail, placement and edge treatment."
 ---
+
+**Attachment step, marked.** When you have chosen a family reference, attach
+that image file to the message with the attach button, then replace the
+"Reference image" line with:
+
+```text
+Reference image: attached. Keep its palette shares, stroke weight, ink ratio,
+line endings, level of detail, placement and edge treatment.
+```
 
 ## After generating
 
