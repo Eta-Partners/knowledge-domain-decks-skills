@@ -45,6 +45,29 @@ export const FIGURE_WIDTHS = Object.freeze({
 });
 export const DEFAULT_FIGURE_WIDTH = "1.8in";
 
+export const TREATMENTS = Object.freeze(["figure", "full-card", "hybrid", "bordered-panel"]);
+
+// The bordered-panel treatment puts a flat white panel inside the trim and lets
+// frame art fill everything else, including the bleed. 0.25 in at 300 dpi is
+// 75 px, a whole number, so the panel needs no half-pixel rounding. It clears
+// the trim line by 37.5 px on each side and covers the safe box with 18.75 px to
+// spare at the bottom.
+export const PANEL = Object.freeze({
+  insetInches: 0.25,
+  x: 75,
+  y: 75,
+  width: 750,
+  height: 1350,
+  box: Object.freeze({ x: 75, y: 75, width: 750, height: 1350 }),
+  clearOfSafeBoxExactPx: 18.75,
+  background: Object.freeze({
+    hex: "#ffffff",
+    rgb: Object.freeze([255, 255, 255]),
+    tolerance: 8,
+    label: "paper white",
+  }),
+});
+
 // One fixed ground per treatment. The figure square sits on the white page, so
 // its ground is paper white. The full-card and hybrid canvases bleed to the
 // page edge, so their ground is a warm near-white that prints as a tint and
@@ -67,6 +90,15 @@ export const BACKGROUNDS = Object.freeze({
     rgb: Object.freeze([245, 242, 234]),
     tolerance: 10,
     label: "warm rag",
+  }),
+  // The panel is 75% of the canvas, so it is the modal ground even when the
+  // frame art around it is dark. The frame's colours are the art's business;
+  // only the panel has to be flat paper white.
+  "bordered-panel": Object.freeze({
+    hex: "#ffffff",
+    rgb: Object.freeze([255, 255, 255]),
+    tolerance: 8,
+    label: "paper white panel",
   }),
 });
 
@@ -147,10 +179,10 @@ export function canvasFor(treatment, figureWidth = DEFAULT_FIGURE_WIDTH) {
     const side = figureSide(figureWidth);
     return { width: side, height: side };
   }
-  if (treatment === "full-card" || treatment === "hybrid") {
+  if (treatment === "full-card" || treatment === "hybrid" || treatment === "bordered-panel") {
     return { width: PAGE.width, height: PAGE.height };
   }
-  throw new Error(`unknown treatment ${treatment}; use figure, full-card or hybrid`);
+  throw new Error(`unknown treatment ${treatment}; use ${TREATMENTS.join(", ")}`);
 }
 
 // Where the hybrid canvas puts its figure square. The square sits centred in
@@ -172,10 +204,77 @@ export function hybridSlot(figureWidth = DEFAULT_FIGURE_WIDTH, deck = null) {
   };
 }
 
-// The treatment a bare download can be inferred to, from its canvas alone. A
-// square matching a figure width is a figure. A full page is a full-card,
-// because full-card and hybrid share a canvas; the caller is told so it can
-// label the inference or pass --treatment hybrid.
+// A model returns a canvas that is close to, not always exactly, the one asked
+// for. A return slightly smaller than expected is usable art cropped at the
+// edge, not a failure: it is accepted when the crop cannot reach the region the
+// template reserves, and refused only when it would cut into that region. The
+// returned size and the delta are recorded either way.
+export function canvasFit(treatment, width, height, figureWidth = DEFAULT_FIGURE_WIDTH) {
+  const expected = canvasFor(treatment, figureWidth);
+  const delta = { width: width - expected.width, height: height - expected.height };
+  const reasons = [];
+
+  if (treatment === "figure") {
+    if (width !== height) {
+      reasons.push(`canvas ${width}x${height} is not square; the figure prints in a square`);
+    } else {
+      const limit = Math.ceil(expected.width * 0.1);
+      if (delta.width < -limit) {
+        reasons.push(
+          `canvas ${width}x${height} is ${-delta.width}x${-delta.height} px smaller than the figure canvas ${expected.width}x${expected.height} (limit ${limit} px)`,
+        );
+      }
+    }
+    return {
+      expected,
+      actual: { width, height },
+      delta,
+      ok: reasons.length === 0,
+      reasons,
+      note:
+        reasons.length > 0 || (delta.width === 0 && delta.height === 0)
+          ? null
+          : `canvas ${width}x${height} is ${Math.abs(delta.width)}x${Math.abs(delta.height)} px from ${expected.width}x${expected.height}`,
+    };
+  }
+
+  // The nearest reserved region: the safe box for full-card and hybrid, the
+  // panel for bordered panel. A crop is measured as though it all came from one
+  // edge, which is the worst case.
+  const margin =
+    treatment === "bordered-panel"
+      ? Math.min(
+          PANEL.x,
+          PANEL.y,
+          PAGE.width - (PANEL.x + PANEL.width),
+          PAGE.height - (PANEL.y + PANEL.height),
+        ) - 1
+      : Math.min(
+          SAFE.box.x,
+          SAFE.box.y,
+          PAGE.width - (SAFE.box.x + SAFE.box.width),
+          PAGE.height - (SAFE.box.y + SAFE.box.height),
+        );
+  const lostWidth = Math.max(0, -delta.width - margin);
+  const lostHeight = Math.max(0, -delta.height - margin);
+  if (lostWidth > 0 || lostHeight > 0) {
+    const region = treatment === "bordered-panel" ? "panel" : "safe box";
+    reasons.push(
+      `canvas ${width}x${height} is ${-delta.width}x${-delta.height} px smaller than the ${treatment} canvas ${expected.width}x${expected.height}; the crop would lose ${lostWidth}x${lostHeight} px of the ${region}`,
+    );
+  }
+  return {
+    expected,
+    actual: { width, height },
+    delta,
+    ok: reasons.length === 0,
+    reasons,
+    note:
+      reasons.length > 0 || (delta.width === 0 && delta.height === 0)
+        ? null
+        : `crop: ${width}x${height} is ${Math.abs(delta.width)}x${Math.abs(delta.height)} px ${delta.width < 0 || delta.height < 0 ? "smaller" : "larger"} than ${expected.width}x${expected.height}; the ${treatment === "bordered-panel" ? "panel" : "safe box"} survives`,
+  };
+}
 export function inferTreatment(width, height) {
   if (width === height) {
     const hit = Object.entries(FIGURE_WIDTHS).find(([, side]) => side === width);
@@ -193,7 +292,7 @@ export function inferTreatment(width, height) {
       treatment: "full-card",
       figureWidth: null,
       inferred: true,
-      note: `900x1500 is the full-card canvas; hybrid shares it, pass --treatment hybrid if this one is a hybrid`,
+      note: `900x1500 is the full-card canvas; hybrid and bordered panel share it, pass --treatment if this one is not a full card`,
     };
   }
   return {
@@ -210,7 +309,7 @@ export function printSize(treatment, figureWidth, width, height) {
     const side = FIGURE_WIDTHS[figureWidth] / DPI;
     return { width: side, height: side };
   }
-  if (treatment === "full-card" || treatment === "hybrid") {
+  if (treatment === "full-card" || treatment === "hybrid" || treatment === "bordered-panel") {
     return { width: PAGE.width / DPI, height: PAGE.height / DPI };
   }
   return { width: width / DPI, height: height / DPI };

@@ -2999,3 +2999,78 @@ the twelve shipped decks rebuild byte-identical. The gate ran 14/0/1 with
 descriptions carry the measured ranges they are built on: names 15-62,
 scenarios 58-231, scripts one to four lines of 60-344 characters, short defenses
 102-120, origins 138-375, full defenses 179-360.
+
+## 72. The card-art kit accepts a near-size canvas and checks art without the references present
+
+The card-art kit adds one generated image per card while the printed card keeps
+its copy. An image model returns a canvas close to, not always exactly, the one
+asked for; the operator's Stage 1 run returned 896 x 1493 against 900 x 1500 and
+the old check refused it on the size alone. That art is usable: losing four
+columns and seven rows from the canvas edge takes nothing the template reserves.
+So the kit separates two questions. Is the returned canvas square, for the
+figure treatment, and can the crop reach a reserved region? For the figure the
+side is fixed by the deck's `figureWidth` (420, 480 or 540 px) and a return up to
+10% smaller is accepted, because the square prints at a set width and the extra
+pixels are padding. For full card, hybrid and bordered panel the nearest region
+is the safe box at 93 reserved pixels from every page edge, or the panel at 74,
+one pixel inside its 75 px inset. A return is accepted while `-delta` does not
+exceed that margin and is refused when it does, with the message naming the
+pixels the crop would lose (a 700 x 1500 return against 900 x 1500 loses 107 x 0
+px of the safe box). An accepted near-size return records `expectedCanvas`,
+`canvasDelta` and a one-line `canvasNote` in the sidecar, so the difference
+travels with the image instead of disappearing into a build log.
+
+**The panel rounds in whole pixels.** 0.25 in at 300 dpi is 75 px, so the panel
+sits at x 75, y 75, 750 x 1350, inside the 38 px trim and covering the safe box
+with 18.75 px to spare. Its frame art fills the canvas including the bleed; the
+panel must be flat `#ffffff` (tolerance 8) with its inner edge at least 95%
+white and at least 60% of it white, which leaves room for the figure-sized icon
+without a visible square edge. The icon variant puts a square of the deck's
+`figureWidth` at the deck's measured figure top (665 brand, 597 copywriting, 633
+ux-laws), so the type above and below does not move.
+
+**The figure width is the deck's, and the hybrid band follows the measurement.**
+`figureWidth` comes from the deck file, not from a kit default: seven decks print
+1.4 in (brand, negotiation, ideation, innovation, team, productivity), copywriting
+prints 1.6 in, and the six that name none print 1.8 in. Negotiation was corrected
+from 1.8 in to 1.4 in for this kit because the deck file wins over an earlier
+verbal instruction, and the kit's canvas and figure widths follow the deck rather
+than overriding it. The hybrid square's top is the deck's deepest measured figure
+top from `HYBRID_MEASUREMENT` (brand 665, copywriting 597, ux-laws 633, and the
+665 px union maximum for a deck not in the table), measured with Typst at
+`509beab`, so the type above never prints into the square. The full-card reading
+is stated in `treatments/full-card.md` as an interpretation: "art is the whole card
+face" is read as both faces, the recto carrying the subject in the figure area and
+the verso carrying type. If only the front face was meant, that is a smaller
+change to the treatment document, not to the validator, which checks the canvas
+without telling the faces apart.
+
+**Art validation is self-contained.** The ordinary ingest path reads the image
+and, when given, the committed style card. It never opens a reference folder,
+which is what lets it run in a fresh clone and in CI with the references absent.
+`--verify-references <folder>` is a separate, opt-in mode that re-measures the
+folder the card cites and refuses a missing file, a changed sha256 or a number
+outside the card's own bands. The folder is always an explicit argument and only
+its basename is recorded, so no absolute path, no reference image and nothing
+from the read-only research input enters the repository. The test suite proves
+the separation by deleting the references folder and ingesting an image against
+the card alone.
+
+**The style card's numbers are stated, not implied.** A quantised palette bucket
+is the mean colour of the pixels in it, so paper white is reported as `#ffffff`
+rather than the bucket centre. `colourCount` counts buckets that carry at least
+0.5% of the pixels. Contrast is the p5 to p95 spread of the ink pixels
+themselves, not of the whole canvas, because a white ground would otherwise
+report a contrast of zero on art that prints perfectly well. Each metric gets a
+band of the median plus the larger of its floor and 25% of the observed spread.
+A card describes one treatment at one canvas; applying a 420 px figure card to a
+900 x 1500 full card correctly reports every metric as out of band, and the
+documents say so rather than the validator guessing a second card.
+
+**JPEG is decoded once, and the licence is the person's to settle.** `jpeg-js`
+0.4.4 is pinned, BSD-3-Clause, with no transitive dependencies; a JPEG is decoded
+and written as PNG, with `source`, `sourceSha256` and `conversion: jpeg->png` in
+the sidecar. The package's own PNG reader refuses palette, interlaced and `tRNS`
+images by name. The README carries a licence note marked as a draft: hosted-model
+output is not the repository's to relicense, so each sidecar records the model,
+date, prompt hash and a terms note, and the wording is left for the person.

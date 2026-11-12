@@ -1,6 +1,6 @@
 # Card art prompt kit
 
-One template, three treatments, one family per deck. Fill the slots, paste the
+One template, four treatments, one family per deck. Fill the slots, paste the
 prompt, attach the reference image when you have one.
 
 The kit is for Gemini NanoBanana or any image model that accepts a prompt and an
@@ -33,7 +33,7 @@ Do not sign the image.
 
 | Slot | What it is for |
 | --- | --- |
-| `treatment` | Chooses the canvas, ground, quiet zone and drawing language. One of `figure`, `full-card`, `hybrid`. |
+| `treatment` | Chooses the canvas, ground, quiet zone and drawing language. One of `figure`, `full-card`, `hybrid`, `bordered-panel`. |
 | `deck` | Names the deck. One deck uses one treatment, so every card in it stays one family. |
 | `category` | The card's category. It selects the category accent colour. |
 | `card_name` | The printed name, for your own reference. The image must never contain it. |
@@ -50,9 +50,11 @@ Do not sign the image.
 | `figure` | 420, 480 or 540 square | `#ffffff`, within 8 | Outer 8 px ring is ground; no type inside | 6 to 12 px at 420, scaled | Max 2 solid | At least 55% |
 | `full-card` | 900 x 1500 | `#f5f2ea`, within 10 | Safe box `94, 94, 713 x 1313` outside the figure area; no paper white in the 38 px bleed | 10 to 24 px | Max 2 solid, plus one wash or grid | At least 35% |
 | `hybrid` | 900 x 1500 | `#f5f2ea`, within 10 | Above the square from y 94 to its top; below from its bottom + 42 px to y 1407 | 6 to 14 px in the square | Max 2 solid in the square, plus one field wash | At least 45% of the square |
+| `bordered-panel` | 900 x 1500 | frame art to the edge; panel `#ffffff`, within 8 | The panel `75, 75, 750 x 1350`; no frame stroke inside it | 10 to 24 px in the frame; 6 to 12 px in a 420 px icon | Max 3 solid in the frame; 2 in the icon | At least 30% of the frame |
 
-The exact geometry, including where the hybrid square sits for each deck, is in
-`treatments/figure.md`, `treatments/full-card.md` and `treatments/hybrid.md`.
+The exact geometry, including where the hybrid and icon squares sit for each
+deck, is in `treatments/figure.md`, `treatments/full-card.md`,
+`treatments/hybrid.md` and `treatments/bordered-panel.md`.
 
 ## Negative prompt block
 
@@ -153,6 +155,51 @@ that image file to the message with the attach button, then replace the
 Reference image: attached. Keep its palette shares, stroke weight, ink ratio,
 line endings, level of detail, placement and edge treatment.
 ```
+
+## Filled paste block: the bordered panel
+
+The same card, `BRA-01`, as a bordered panel with its icon, brand deck at 1.4 in.
+The frame is the new part; the icon is the drawing the card has today. Copy
+everything between the rules into Gemini. The shared attachment step above
+applies unchanged.
+
+---
+
+Draw one illustration for a printed reference card.
+
+Treatment: bordered panel with an icon. Frame art runs to every edge of the
+canvas. A flat white panel sits at x 75, y 75, 750 x 1350 px, and the copy prints
+on it. A 420 x 420 icon square is centred at x 240, y 665 inside the panel.
+Deck: brand.
+Category: Positioning & Market Differentiation.
+Card name, for your reference only, never in the image: Dunford's 5-Component
+Positioning Framework.
+Metaphor to draw, inside the icon square only: a plain five-column ledger, viewed
+front-on. Five equal columns, all empty. One column is marked by a single solid
+tab across its top. The mark is a shape, not a numeral.
+Frame to draw, around the panel and out to every edge: one wrapping run of flat
+geometric marks in the accent and the neutral, repeated along the four sides. It
+never enters the panel.
+Palette: category accent #1D4ED8, one neutral #334155, panel and icon ground
+#FFFFFF.
+Canvas: 900 x 1500 px at 300 dpi.
+Quiet zone: the whole panel, x 75 to 825 and y 75 to 1425, is flat #FFFFFF
+except the icon square. No line, wash or texture inside it.
+Reference image: none on this first run.
+
+Drawing language: one subject in the icon, flat and front-on, solid fills only,
+round line ends, generous empty ground, no shading and no perspective grid.
+No text, letters, numerals, arrows, ticks, logos, watermarks or glyphs that
+carry meaning. The copy carries the meaning; the drawing carries the metaphor.
+Do not sign the image.
+
+Negative: no text, letters, numerals, arrows, ticks, logos, watermarks or
+glyphs. No drop shadow, glow, gradient, photographic texture or 3D rendering. No
+people, faces or hands. No hairlines below 5 px. No paper white in the outer
+38 px frame. Do not let the frame enter the panel. Do not use a colour outside
+the palette. Do not sign the image.
+
+---
 
 ## After generating
 
