@@ -3030,7 +3030,7 @@ without a visible square edge. The icon variant puts a square of the deck's
 ux-laws), so the type above and below does not move.
 
 **The figure width is the deck's, and the hybrid band follows the measurement.**
-`figureWidth` comes from the deck file, not from a kit default: seven decks print
+`figureWidth` comes from the deck file, not from a kit default: six decks print
 1.4 in (brand, negotiation, ideation, innovation, team, productivity), copywriting
 prints 1.6 in, and the six that name none print 1.8 in. Negotiation was corrected
 from 1.8 in to 1.4 in for this kit because the deck file wins over an earlier
