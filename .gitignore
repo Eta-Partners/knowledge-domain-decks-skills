@@ -5,3 +5,7 @@ packages/prepress/build/
 # Read-only research input for this slice: provenance/licence is the person's call.
 /SupportingInformation/
 .judges/
+# Card-art candidates are downloads and the contact sheet is a local review
+# artefact; neither belongs in the repository.
+packages/card-icons/candidates/
+packages/card-icons/contact-sheet.html
