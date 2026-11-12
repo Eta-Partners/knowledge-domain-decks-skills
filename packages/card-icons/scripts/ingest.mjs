@@ -48,6 +48,10 @@ function usage() {
     [--figure-width 1.4in|1.6in|1.8in] [--style-card <style-card.json>] \\
     [--fixture] [--root <repo root>]
 
+  The figure width comes from decks/<slug>/deck.json (1.8in when the deck
+  names none). --figure-width is optional and is refused when it disagrees
+  with that file. --deck must name a deck whose deck.json exists.
+
   node packages/card-icons/scripts/ingest.mjs --verify --deck <slug> --card <id> \\
     [--style-card <style-card.json>] [--root <repo root>]
 
@@ -101,13 +105,70 @@ function refuse(label, reasons) {
   process.exit(1);
 }
 
+// The fixed path is decks/<slug>/art/<card-id>.png. The slug and the card id
+// are validated and the result is checked against decks/, so a typo or a
+// crafted argument cannot write a stray image and sidecar into a folder
+// nothing prints.
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
+const CARD_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 function artPaths(root, deck, card) {
+  if (!SLUG.test(deck || "")) {
+    throw new Error(
+      `deck ${deck} is not a deck name; use lower-case letters, digits and hyphens`,
+    );
+  }
+  if (!CARD_ID.test(card || "") || card.includes("..")) {
+    throw new Error(`card ${card} is not a card id; use letters, digits, dots and hyphens`);
+  }
   const dir = path.join(root, "decks", deck, "art");
+  const png = path.join(dir, `${card}.png`);
+  const under = path.relative(path.join(root, "decks"), png);
+  if (under.startsWith("..") || path.isAbsolute(under)) {
+    throw new Error(`art path ${png} is outside decks/`);
+  }
   return {
     dir,
-    png: path.join(dir, `${card}.png`),
+    png,
     json: path.join(dir, `${card}.json`),
   };
+}
+
+// The deck file is the record of the deck's figure width. Reading it here makes
+// the canvas check match the deck without the caller having to remember a
+// number, and a slug that names no deck is refused before anything is written.
+// A --figure-width that disagrees with the deck is a refusal rather than a
+// silent override, so the art cannot be cut to a width the deck does not print.
+function deckFigureWidth(root, deck, requested) {
+  const file = path.join(root, "decks", deck, "deck.json");
+  if (!fs.existsSync(file)) {
+    throw new Error(`deck ${deck} is not a deck: ${relative(root, file)} is missing`);
+  }
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    throw new Error(`deck ${deck}: ${relative(root, file)} is not readable: ${error.message}`);
+  }
+  const named = data.figureWidth === undefined ? DEFAULT_FIGURE_WIDTH : data.figureWidth;
+  if (!FIGURE_WIDTHS[named]) {
+    throw new Error(
+      `deck ${deck} declares figureWidth ${named}; use one of ${Object.keys(FIGURE_WIDTHS).join(", ")}`,
+    );
+  }
+  if (requested !== undefined && requested !== "") {
+    if (!FIGURE_WIDTHS[requested]) {
+      throw new Error(
+        `unknown figure width ${requested}; use ${Object.keys(FIGURE_WIDTHS).join(", ")}`,
+      );
+    }
+    if (requested !== named) {
+      throw new Error(
+        `deck ${deck} prints ${named} figures; ${requested} contradicts ${relative(root, file)}`,
+      );
+    }
+  }
+  return named;
 }
 
 function relative(root, file) {
@@ -139,18 +200,14 @@ function ingest(args) {
   const card = args.card;
   const treatment = args.treatment;
   const input = args.input;
-  const figureWidth = args.figurewidth || DEFAULT_FIGURE_WIDTH;
 
   if (!deck || !card) throw new Error("--deck and --card are required");
   if (!treatment) throw new Error("--treatment is required");
   if (!TREATMENTS.includes(treatment)) {
     throw new Error(`unknown treatment ${treatment}`);
   }
-  if (!FIGURE_WIDTHS[figureWidth]) {
-    throw new Error(
-      `unknown figure width ${figureWidth}; use ${Object.keys(FIGURE_WIDTHS).join(", ")}`,
-    );
-  }
+  const paths = artPaths(root, deck, card);
+  const figureWidth = deckFigureWidth(root, deck, args.figurewidth);
   if (!input) throw new Error("--input is required");
   if (!args.model || args.model.trim() === "") {
     throw new Error("missing required sidecar field: model is empty");
@@ -183,7 +240,6 @@ function ingest(args) {
   const result = validateImage(decoded.image, { treatment, figureWidth, styleCard });
   if (!result.ok) refuse(input, result.reasons);
 
-  const paths = artPaths(root, deck, card);
   const sidecar = {
     deck,
     card,
@@ -258,7 +314,11 @@ function verify(args) {
   if (!TREATMENTS.includes(treatment)) {
     refuse(label, [`sidecar treatment ${treatment} is not one of ${TREATMENTS.join(', ')}`]);
   }
-  const figureWidth = sidecar.figureWidth || DEFAULT_FIGURE_WIDTH;
+  const figureWidth = deckFigureWidth(
+    root,
+    args.deck,
+    args.figurewidth || sidecar.figureWidth,
+  );
 
   let styleCard = null;
   if (args.stylecard) {

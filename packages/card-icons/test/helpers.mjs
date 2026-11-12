@@ -18,6 +18,20 @@ export const analyseScript = path.join(
 export function tempFixtures() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kdds-card-icons-"));
   const fixtures = generateFixtures(path.join(dir, "fixtures"));
+  // Ingest reads the deck's figure width from decks/<slug>/deck.json and
+  // refuses a slug that names no deck. fixture prints 1.4in figures, copy
+  // 1.6in, and wide names none, so it takes the 1.8in default the panel icon
+  // fixture is cut for.
+  for (const [slug, width] of [
+    ["fixture", "1.4in"],
+    ["copy", "1.6in"],
+    ["wide", null],
+  ]) {
+    const deckDir = path.join(dir, "decks", slug);
+    fs.mkdirSync(deckDir, { recursive: true });
+    const deck = width ? { slug, figureWidth: width } : { slug };
+    fs.writeFileSync(path.join(deckDir, "deck.json"), `${JSON.stringify(deck, null, 2)}\n`);
+  }
   return { dir, ...fixtures };
 }
 

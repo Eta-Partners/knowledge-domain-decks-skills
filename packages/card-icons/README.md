@@ -41,6 +41,10 @@ models usually return. The PNG reader and writer are ours and dependency-free.
 
 One deck uses one treatment, so every card in it stays one family.
 
+For hybrid, the prompt asks for the figure square to end at the deck's measured
+figure top. Ingest does not check that placement: it is instructed in the prompt
+and checked by eye on the contact sheet, not measured by the validator.
+
 ## Generate candidates
 
 1. Fill the template in `prompts/card-art-prompt.md` for the card, or use a
@@ -113,9 +117,17 @@ node packages/card-icons/scripts/ingest.mjs \
 
 It writes `decks/<slug>/art/<card-id>.png` and `<card-id>.json`, then re-reads
 the file and checks its sha256. On a refusal it exits nonzero and writes nothing.
+`--deck` must name a deck whose `decks/<slug>/deck.json` exists, and the slug and
+card id are validated, so a typo cannot write art into a folder nothing prints.
+
+The figure width comes from that deck file (`1.8in` when it names none).
+`--figure-width` is optional; pass it only to confirm what the deck prints. A
+flag that disagrees with the deck file is refused rather than silently
+overriding it.
 
 Checks:
 
+- the deck exists and its recorded figure width agrees with this run;
 - canvas, or a returned canvas whose crop cannot reach the safe box or panel;
 - background against the treatment's declared ground;
 - figure: the outer ring stays ground; bordered panel: the panel's inner edge
@@ -166,6 +178,8 @@ node packages/card-icons/scripts/ingest.mjs --verify --deck brand --card BRA-01
 ```
 
 It re-checks the file and sidecar pair, including the sidecar's hash of the art.
+It also re-reads the deck file, so art cut for a figure width the deck no longer
+prints is refused.
 
 ## Fixtures
 

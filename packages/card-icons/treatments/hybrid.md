@@ -64,6 +64,15 @@ the table uses the union maximum, 664.73 px rounded up to **665 px**, which fits
 every measured deck. If a deck's type changes, measure it again; the band is a
 property of the deck, not a constant.
 
+## What the validator checks
+
+The prompt asks for this placement; ingest does not measure it. Its hybrid
+checks are the shared ones: the 900 x 1500 canvas or a crop that cannot reach
+the safe box, the field ground, a bleed frame with no paper white, the ink share,
+the grayscale separation and colour collapse. None of them locates the square in
+the canvas. Placement is checked by eye on the contact sheet, at print size,
+against the measured top for the deck.
+
 ## Type region and quiet zone
 
 - Above the square: from the safe-box top, y 94, to the square's top.

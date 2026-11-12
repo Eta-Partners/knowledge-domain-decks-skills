@@ -3030,20 +3030,27 @@ without a visible square edge. The icon variant puts a square of the deck's
 ux-laws), so the type above and below does not move.
 
 **The figure width is the deck's, and the hybrid band follows the measurement.**
-`figureWidth` comes from the deck file, not from a kit default: six decks print
-1.4 in (brand, negotiation, ideation, innovation, team, productivity), copywriting
-prints 1.6 in, and the six that name none print 1.8 in. Negotiation was corrected
-from 1.8 in to 1.4 in for this kit because the deck file wins over an earlier
-verbal instruction, and the kit's canvas and figure widths follow the deck rather
-than overriding it. The hybrid square's top is the deck's deepest measured figure
-top from `HYBRID_MEASUREMENT` (brand 665, copywriting 597, ux-laws 633, and the
-665 px union maximum for a deck not in the table), measured with Typst at
-`509beab`, so the type above never prints into the square. The full-card reading
-is stated in `treatments/full-card.md` as an interpretation: "art is the whole card
-face" is read as both faces, the recto carrying the subject in the figure area and
-the verso carrying type. If only the front face was meant, that is a smaller
-change to the treatment document, not to the validator, which checks the canvas
-without telling the faces apart.
+`figureWidth` comes from `decks/<slug>/deck.json`, not from a kit default: six
+decks print 1.4 in (brand, negotiation, ideation, innovation, team,
+productivity), copywriting prints 1.6 in, and the six that name none print
+1.8 in. Ingest reads that file itself. A missing deck file, a slug that is not a
+deck name, and a card id that is not one are refusals before anything is
+written, so an argument cannot place art outside `decks/`. `--figure-width` is
+optional: when given it must agree with the deck, and a disagreeing flag is a
+refusal rather than a silent override. `--verify` reads the same file, so art cut
+for a width the deck no longer prints is refused. The reading settles the
+history too: negotiation was corrected from 1.8 in to 1.4 in because the deck
+file was the record, and that record is now what the code follows. The hybrid
+square's top is the deck's deepest measured figure top from `HYBRID_MEASUREMENT`
+(brand 665, copywriting 597, ux-laws 633, and the 665 px union maximum for a deck
+not in the table), measured with Typst at `509beab`. That placement is instructed
+in the prompt and checked by eye on the contact sheet; ingest does not measure
+it, and the treatment document says so. The full-card reading is stated in
+`treatments/full-card.md` as an interpretation: "art is the whole card face" is
+read as both faces, the recto carrying the subject in the figure area and the
+verso carrying type. If only the front face was meant, that is a smaller change
+to the treatment document, not to the validator, which checks the canvas without
+telling the faces apart.
 
 **Art validation is self-contained.** The ordinary ingest path reads the image
 and, when given, the committed style card. It never opens a reference folder,

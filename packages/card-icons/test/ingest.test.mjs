@@ -36,11 +36,11 @@ function refuse(result, pattern) {
 }
 
 test("accepts a compliant figure and writes the art and its sidecar", () => {
+  // No --figure-width: the width comes from decks/fixture/deck.json (1.4in).
   const result = ingest({
     root,
     card: "A1",
     treatment: "figure",
-    figureWidth: "1.4in",
     input: path.join(images, "figure-420.png"),
   });
   assert.equal(result.status, 0, result.stderr);
@@ -118,13 +118,13 @@ test("accepts the bordered panel, with and without its icon", () => {
   ]) {
     const result = ingest({
       root,
+      deck: "wide",
       card,
       treatment: "bordered-panel",
-      figureWidth: "1.8in",
       input: path.join(images, file),
     });
     assert.equal(result.status, 0, `${file}: ${result.stderr}`);
-    const sidecar = readJson(artPaths(root, card).json);
+    const sidecar = readJson(artPaths(root, card, "wide").json);
     assert.equal(sidecar.treatment, "bordered-panel");
     assert.equal(sidecar.figureWidth, "1.8in");
     assert.deepEqual(sidecar.canvas, { width: 900, height: 1500 });
@@ -203,9 +203,9 @@ test("refuses two colours that collapse to one grey", () => {
 test("refuses a panel that is all paper white, with no frame art", () => {
   const result = ingest({
     root,
+    deck: "wide",
     card: "B7",
     treatment: "bordered-panel",
-    figureWidth: "1.8in",
     input: path.join(images, "panel-paper.png"),
   });
   refuse(result, /the 38 px bleed frame is 1\.000 paper white \(max 0\.002\)/);
@@ -265,6 +265,97 @@ test("refuses an unknown treatment and an unknown figure width", () => {
   );
 });
 
+test("refuses a deck slug or card id that would write outside decks/", () => {
+  for (const deck of ["../escape", "../../escape"]) {
+    refuse(
+      ingest({
+        root,
+        deck,
+        card: "X1",
+        treatment: "figure",
+        input: path.join(images, "figure-420.png"),
+      }),
+      /is not a deck name; use lower-case letters, digits and hyphens/,
+    );
+  }
+  refuse(
+    ingest({
+      root,
+      deck: "no-such-deck",
+      card: "X1",
+      treatment: "figure",
+      input: path.join(images, "figure-420.png"),
+    }),
+    /deck no-such-deck is not a deck: decks\/no-such-deck\/deck\.json is missing/,
+  );
+  assert.equal(fs.existsSync(path.join(root, "decks", "no-such-deck")), false);
+  for (const card of ["../x", "X/01", "-X", "A..B"]) {
+    refuse(
+      ingest({
+        root,
+        card,
+        treatment: "figure",
+        input: path.join(images, "figure-420.png"),
+      }),
+      /is not a card id; use letters, digits, dots and hyphens/,
+    );
+  }
+  assert.equal(fs.existsSync(path.join(root, "art")), false);
+  assert.equal(fs.existsSync(path.join(root, "decks", "art")), false);
+});
+
+test("takes the figure width from each deck, and 1.8in when the deck names none", () => {
+  for (const [deck, file, width, side] of [
+    ["fixture", "figure-420.png", "1.4in", 420],
+    ["copy", "figure-480.png", "1.6in", 480],
+    ["wide", "figure-540.png", "1.8in", 540],
+  ]) {
+    const card = `W-${deck}`;
+    const result = ingest({
+      root,
+      deck,
+      card,
+      treatment: "figure",
+      input: path.join(images, file),
+    });
+    assert.equal(result.status, 0, `${deck}: ${result.stderr}`);
+    const sidecar = readJson(artPaths(root, card, deck).json);
+    assert.equal(sidecar.figureWidth, width);
+    assert.deepEqual(sidecar.canvas, { width: side, height: side });
+  }
+});
+
+test("refuses a --figure-width that contradicts the deck file", () => {
+  refuse(
+    ingest({
+      root,
+      card: "B13",
+      treatment: "figure",
+      figureWidth: "1.8in",
+      input: path.join(images, "figure-540.png"),
+    }),
+    /deck fixture prints 1\.4in figures; 1\.8in contradicts decks\/fixture\/deck\.json/,
+  );
+  assert.equal(fs.existsSync(artPaths(root, "B13").png), false);
+});
+
+test("refuses a deck that declares a figure width it does not have", () => {
+  const deckDir = path.join(root, "decks", "bogus");
+  fs.mkdirSync(deckDir, { recursive: true });
+  fs.writeFileSync(path.join(deckDir, "deck.json"), '{"figureWidth":"2in"}\n');
+  refuse(
+    ingest({
+      root,
+      deck: "bogus",
+      card: "B14",
+      treatment: "figure",
+      input: path.join(images, "figure-420.png"),
+    }),
+    /deck bogus declares figureWidth 2in; use one of 1\.4in, 1\.6in, 1\.8in/,
+  );
+  assert.equal(fs.existsSync(path.join(deckDir, "art")), false);
+});
+
 test("verify accepts the art and sidecar at the fixed path", () => {
   const result = run(ingestScript, ["--verify", "--root", root, "--deck", "fixture", "--card", "A1"]);
   assert.equal(result.status, 0, result.stderr);
@@ -309,6 +400,20 @@ test("verify refuses a sidecar whose hash or canvas does not match the file", ()
   fs.writeFileSync(paths.json, original);
   const ok = run(ingestScript, ["--verify", "--root", root, "--deck", "fixture", "--card", "A2"]);
   assert.equal(ok.status, 0, ok.stderr);
+});
+
+test("verify refuses art whose recorded width the deck no longer prints", () => {
+  const file = path.join(root, "decks", "fixture", "deck.json");
+  const original = fs.readFileSync(file);
+  try {
+    fs.writeFileSync(file, '{"slug":"fixture","figureWidth":"1.8in"}\n');
+    refuse(
+      run(ingestScript, ["--verify", "--root", root, "--deck", "fixture", "--card", "A1"]),
+      /deck fixture prints 1\.8in figures; 1\.4in contradicts decks\/fixture\/deck\.json/,
+    );
+  } finally {
+    fs.writeFileSync(file, original);
+  }
 });
 
 test("a style card is applied at ingest, and its band refusal names the metric", () => {
