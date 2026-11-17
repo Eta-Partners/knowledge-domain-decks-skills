@@ -105,10 +105,10 @@ function refuse(label, reasons) {
   process.exit(1);
 }
 
-// The fixed path is decks/<slug>/art/<card-id>.png. The slug and the card id
-// are validated and the result is checked against decks/, so a typo or a
-// crafted argument cannot write a stray image and sidecar into a folder
-// nothing prints.
+// The fixed path is decks/<slug>/art/<card-id>.png. The two validators below are
+// what contains the write: neither the slug nor the card id admits "/" or "..",
+// so a typo or a crafted argument cannot write a stray image and sidecar into a
+// folder nothing prints.
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const CARD_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
@@ -123,6 +123,10 @@ function artPaths(root, deck, card) {
   }
   const dir = path.join(root, "decks", deck, "art");
   const png = path.join(dir, `${card}.png`);
+  // Unreachable while the two validators above hold, and no test can reach it:
+  // it is a backstop for an edit that loosens either regex, not a second
+  // defence. It does not resolve symlinks either, so a symlinked decks/<slug>
+  // would pass it; the validators are the containment.
   const under = path.relative(path.join(root, "decks"), png);
   if (under.startsWith("..") || path.isAbsolute(under)) {
     throw new Error(`art path ${png} is outside decks/`);
