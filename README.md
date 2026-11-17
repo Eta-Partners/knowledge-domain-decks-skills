@@ -1337,7 +1337,7 @@ please cite:
   author = {Mustard, Thomas J. L.},
   title = {{Knowledge Domain Decks}},
   year = {2026},
-  url = {https://github.com/tjmustard/knowledge-domain-decks-skills}
+  url = {https://github.com/Eta-Partners/knowledge-domain-decks-skills}
 }
 ```
 

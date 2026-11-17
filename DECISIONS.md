@@ -92,12 +92,16 @@ MediaBox and conventional outside-the-bleed marks; that is deferred with the
 
 ## 7. The schema `$id` points at the public repository
 
-`data/law-schema.json` uses
-`https://raw.githubusercontent.com/tjmustard/knowledge-domain-decks-skills/main/data/law-schema.json`
+`decks/ux-laws/data/law-schema.json` uses
+`https://raw.githubusercontent.com/Eta-Partners/knowledge-domain-decks-skills/main/decks/ux-laws/data/law-schema.json`
 as its `$id`. This is the canonical location on the repository's default
 branch. Validation reads the local file, so the identifier is not fetched; it
 becomes a live remote reference only once this slice is merged to `main`. If
-the file moves, update the `$id` in the same change.
+the file moves, update the `$id` in the same change — this entry was written
+when the file was at `data/law-schema.json`, and 8233cd8 moved it under
+`decks/ux-laws/` without the identifier following, so the path here is the
+move it owed. The repository owner changed on 17 November 2026, and the
+identifier names the new owner so that nothing ever resolves the old one.
 
 ## 8. Typst is required but absent on this machine
 

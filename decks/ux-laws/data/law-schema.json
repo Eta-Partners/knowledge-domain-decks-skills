@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/tjmustard/knowledge-domain-decks-skills/main/data/law-schema.json",
+  "$id": "https://raw.githubusercontent.com/Eta-Partners/knowledge-domain-decks-skills/main/decks/ux-laws/data/law-schema.json",
   "title": "UXLawCard",
   "description": "One reference card in the UX & Behavioral Design deck. Derived from the canonical eight-field card anatomy in the source specification, with the undeclared remediatedPattern requirement removed (see DECISIONS.md).",
   "type": "object",
