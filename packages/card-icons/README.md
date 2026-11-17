@@ -138,11 +138,21 @@ Checks:
 - licence metadata (`--terms` non-empty) and every required sidecar field;
 - with `--style-card`, every measured metric inside the card's bands.
 
-A returned canvas a few pixels off the asked size is accepted when the crop
-cannot reach the region the template reserves. The actual size, the expected
-size, the delta and a crop note go in the sidecar. A 896 x 1493 return against
-900 x 1500 is accepted and recorded; a 700 x 1500 return is refused because the
-crop would lose 107 px of the safe box.
+A returned canvas a few pixels off the asked size is accepted when the fit that
+places it cannot reach the region the template reserves. The actual size, the
+expected size, the delta and a crop note go in the sidecar. The two kinds of
+treatment are bounded differently. A page-sized treatment - full card, hybrid,
+bordered panel - is placed by a cover fit, because the art has to reach the trim
+edge and contain would leave bare paper; the crop therefore follows from the
+aspect ratio, so a narrow return is cropped vertically and a wide one
+horizontally, and the bound is the 93 px to the safe box (74 px to the panel) in
+either direction. A 896 x 1493 return against 900 x 1500 covers the page at
+1.005x and takes 1 px from one edge; a 1200 x 1500 return is refused because
+covering the page crops 300 px, 150 per edge, which reaches the safe box; a
+700 x 1500 return is refused the same way, at 429 px and 215 per edge. A figure
+is placed at a fixed width instead, so it is bounded on the small side only, at
+10%. Nothing in this repository crops the art yet: the rule states the cover fit
+its consumer must use, and `DECISIONS.md` §72 records that.
 
 ### Sidecar naming
 

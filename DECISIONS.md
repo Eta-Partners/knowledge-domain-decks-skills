@@ -3009,20 +3009,41 @@ scenarios 58-231, scripts one to four lines of 60-344 characters, short defenses
 The card-art kit adds one generated image per card while the printed card keeps
 its copy. An image model returns a canvas close to, not always exactly, the one
 asked for; the operator's Stage 1 run returned 896 x 1493 against 900 x 1500 and
-the old check refused it on the size alone. That art is usable: losing four
-columns and seven rows from the canvas edge takes nothing the template reserves.
+the old check refused it on the size alone. That art is usable: covered onto the
+page it loses one pixel from one edge, nothing the template reserves.
 So the kit separates two questions. Is the returned canvas square, for the
 figure treatment, and can the crop reach a reserved region? For the figure the
 side is fixed by the deck's `figureWidth` (420, 480 or 540 px) and a return up to
 10% smaller is accepted, because the square prints at a set width and the extra
 pixels are padding. For full card, hybrid and bordered panel the nearest region
 is the safe box at 93 reserved pixels from every page edge, or the panel at 74,
-one pixel inside its 75 px inset. A return is accepted while `-delta` does not
-exceed that margin and is refused when it does, with the message naming the
-pixels the crop would lose (a 700 x 1500 return against 900 x 1500 loses 107 x 0
-px of the safe box). An accepted near-size return records `expectedCanvas`,
-`canvasDelta` and a one-line `canvasNote` in the sidecar, so the difference
-travels with the image instead of disappearing into a build log.
+one pixel inside its 75 px inset. A return is accepted while the crop that places
+it stays inside that margin and is refused when it does not, with the message
+naming the pixels the crop would lose. An accepted near-size return records
+`expectedCanvas`, `canvasDelta` and a one-line `canvasNote` in the sidecar, so the
+difference travels with the image instead of disappearing into a build log.
+
+**The page-sized treatments are placed by a cover fit, so the aspect ratio sets
+the crop.** The first version of this rule bounded only the smaller return, and
+bounded it by the margin to the safe box, on the reasoning that a small canvas is
+the one a crop would lose. That is the side a cover fit does not crop. The art has
+to reach the trim edge - the treatment documents forbid paper white anywhere in
+the bleed frame - so contain is incoherent for full card, hybrid and bordered
+panel, and cover is what resolves a size that is not the page's. Under cover the
+crop comes from the aspect ratio: a narrow return is scaled until its width covers
+the page and the excess height is cropped, a wide return the mirror, and a
+same-shape return at another size is cropped by nothing. The bound is therefore one
+number on the crop per edge, not two on the deltas: 93 px for the safe box and 74
+px for the panel. Measured at this commit, full card: 801 x 1500 accepted (186 px
+cropped, 93 per edge), 800 x 1500 refused (188 px, 94 per edge), 1200 x 1500
+refused (300 px, 150 per edge) where the previous rule accepted it with no bound at
+all, and 1800 x 3000 accepted because the same shape at half the scale crops
+nothing. Nothing in this repository crops the art or reads it - `card.typ` places
+no image - so the rule states the fit its consumer must use, and the sidecar note
+says the art is not cropped yet. A same-shape canvas smaller than the page is
+upscaled with no bound, which is a resolution question for that consumer rather
+than a safe-box one. The figure branch is unchanged, and needs no cover: a figure
+prints at a fixed width.
 
 **The panel rounds in whole pixels.** 0.25 in at 300 dpi is 75 px, so the panel
 sits at x 75, y 75, 750 x 1350, inside the 38 px trim and covering the safe box

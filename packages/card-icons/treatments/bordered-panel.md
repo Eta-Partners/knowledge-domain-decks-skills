@@ -92,7 +92,8 @@ above and below it, unmoved.
 
 ## What the validator checks
 
-- Canvas 900 x 1500, or a returned size whose crop cannot reach the panel.
+- Canvas 900 x 1500, or a returned size whose cover-fit crop cannot reach the
+  panel (see `DECISIONS.md` 72).
 - Panel inner edge at least 95% `#ffffff`; panel at least 60% white.
 - Bleed frame at most 0.2% paper white.
 - Ink and ground separate by at least 30 of 255, with no two distinct colours

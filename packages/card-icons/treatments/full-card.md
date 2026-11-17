@@ -5,7 +5,9 @@ fields, never on busy detail.
 
 ## Canvas
 
-900 x 1500 px at 300 dpi: the full page, bleed included.
+900 x 1500 px at 300 dpi: the full page, bleed included. A returned canvas that is
+not the page is placed by a cover fit, whose crop must stay inside the 93 px to the
+safe box (see `DECISIONS.md` 72).
 
 The page is 3.00 x 5.00 in. The trim is 2.75 x 4.75 in, inset 0.125 in on every
 side. At 300 dpi that inset is exactly 37.5 px, which is not a whole pixel, so

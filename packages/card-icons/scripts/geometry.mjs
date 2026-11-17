@@ -205,10 +205,23 @@ export function hybridSlot(figureWidth = DEFAULT_FIGURE_WIDTH, deck = null) {
 }
 
 // A model returns a canvas that is close to, not always exactly, the one asked
-// for. A return slightly smaller than expected is usable art cropped at the
-// edge, not a failure: it is accepted when the crop cannot reach the region the
-// template reserves, and refused only when it would cut into that region. The
-// returned size and the delta are recorded either way.
+// for. A return is accepted when the fit that places it cannot reach the region
+// the template reserves, and refused only when it would cut into that region.
+// The returned size and the delta are recorded either way.
+//
+// The two kinds of treatment are placed differently, so they are bounded
+// differently. A figure prints at a fixed width: smaller is upscaled under a 10%
+// limit and larger is downscaled harmlessly. Full card, hybrid and bordered panel
+// print the art as the whole page, so a size change is resolved by a cover fit -
+// the treatment documents forbid paper showing after trim, which contain would
+// leave - and the bound is the crop that cover takes. What is cropped follows
+// from the aspect ratio, so the bound is on neither the smaller nor the larger
+// side alone.
+//
+// Nothing in this repository crops the art or even reads it:
+// packages/prepress/src/card.typ places no image. The rule therefore states the
+// cover fit its consumer must use, and the sidecar note says so. DECISIONS.md 72
+// records the decision.
 export function canvasFit(treatment, width, height, figureWidth = DEFAULT_FIGURE_WIDTH) {
   const expected = canvasFor(treatment, figureWidth);
   const delta = { width: width - expected.width, height: height - expected.height };
@@ -255,12 +268,30 @@ export function canvasFit(treatment, width, height, figureWidth = DEFAULT_FIGURE
           PAGE.width - (SAFE.box.x + SAFE.box.width),
           PAGE.height - (SAFE.box.y + SAFE.box.height),
         );
-  const lostWidth = Math.max(0, -delta.width - margin);
-  const lostHeight = Math.max(0, -delta.height - margin);
-  if (lostWidth > 0 || lostHeight > 0) {
+  // A page-sized canvas that is not the page size is resolved by a cover fit:
+  // the canvas is scaled until it covers the page and the overhang is cropped.
+  // The crop follows from the aspect ratio, not from which side is short, so a
+  // narrow return is cropped vertically, a wide one horizontally, and a
+  // same-shape return near the page size is cropped by nothing.
+  if (width <= 0 || height <= 0) {
+    reasons.push(`canvas ${width}x${height} has no area to place`);
+    return { expected, actual: { width, height }, delta, ok: false, reasons, note: null };
+  }
+  const scale = Math.max(expected.width / width, expected.height / height);
+  // A crop of one thousandth of a pixel is float noise, not a lost column: the
+  // tolerance keeps a same-shape return at a whole-number scale reporting none.
+  const over = (value) => Math.max(0, Math.ceil(value - 1e-9));
+  const crop = {
+    width: over(width * scale - expected.width),
+    height: over(height * scale - expected.height),
+  };
+  // The crop is measured as though all of it came from one edge, which is the
+  // worst case.
+  const lost = { width: Math.ceil(crop.width / 2), height: Math.ceil(crop.height / 2) };
+  if (lost.width > margin || lost.height > margin) {
     const region = treatment === "bordered-panel" ? "panel" : "safe box";
     reasons.push(
-      `canvas ${width}x${height} is ${-delta.width}x${-delta.height} px smaller than the ${treatment} canvas ${expected.width}x${expected.height}; the crop would lose ${lostWidth}x${lostHeight} px of the ${region}`,
+      `canvas ${width}x${height} covers ${expected.width}x${expected.height} only by scaling ${scale.toFixed(3)}x and cropping ${crop.width}x${crop.height} px, which takes ${lost.width}x${lost.height} px from the edges and reaches the ${region}, ${margin} px from the edge`,
     );
   }
   return {
@@ -272,7 +303,7 @@ export function canvasFit(treatment, width, height, figureWidth = DEFAULT_FIGURE
     note:
       reasons.length > 0 || (delta.width === 0 && delta.height === 0)
         ? null
-        : `crop: ${width}x${height} is ${Math.abs(delta.width)}x${Math.abs(delta.height)} px ${delta.width < 0 || delta.height < 0 ? "smaller" : "larger"} than ${expected.width}x${expected.height}; the ${treatment === "bordered-panel" ? "panel" : "safe box"} survives`,
+        : `crop: ${width}x${height} covers ${expected.width}x${expected.height} at ${scale.toFixed(3)}x, taking ${crop.width}x${crop.height} px from the edges; the ${treatment === "bordered-panel" ? "panel" : "safe box"} survives the cover fit this rule assumes (nothing crops the art yet)`,
   };
 }
 export function inferTreatment(width, height) {

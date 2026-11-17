@@ -97,7 +97,7 @@ test("records a near-size return instead of refusing it", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(
     result.stdout,
-    /accepted decks\/fixture\/art\/A3\.png \(896x1493, crop: 896x1493 is 4x7 px smaller than 900x1500; the safe box survives, PNG\)/,
+    /accepted decks\/fixture\/art\/A3\.png \(896x1493, crop: 896x1493 covers 900x1500 at 1\.005x, taking 1x0 px from the edges; the safe box survives the cover fit this rule assumes \(nothing crops the art yet\), PNG\)/,
   );
   const sidecar = readJson(artPaths(root, "A3").json);
   assert.deepEqual(sidecar.canvas, { width: 896, height: 1493 });
@@ -105,7 +105,7 @@ test("records a near-size return instead of refusing it", () => {
   assert.deepEqual(sidecar.canvasDelta, { width: -4, height: -7 });
   assert.equal(
     sidecar.canvasNote,
-    "crop: 896x1493 is 4x7 px smaller than 900x1500; the safe box survives",
+    "crop: 896x1493 covers 900x1500 at 1.005x, taking 1x0 px from the edges; the safe box survives the cover fit this rule assumes (nothing crops the art yet)",
   );
   // figureWidth is not a full-card property.
   assert.equal("figureWidth" in sidecar, false);
@@ -151,7 +151,10 @@ test("refuses a crop that reaches the safe box, naming the pixels lost", () => {
     treatment: "full-card",
     input: path.join(images, "full-card-cropped.png"),
   });
-  refuse(result, /the crop would lose 107x0 px of the safe box/);
+  refuse(
+    result,
+    /cropping 0x429 px, which takes 0x215 px from the edges and reaches the safe box, 93 px from the edge/,
+  );
   assert.equal(fs.existsSync(artPaths(root, "B2").png), false);
 });
 

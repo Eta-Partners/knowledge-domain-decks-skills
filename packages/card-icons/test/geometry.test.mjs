@@ -134,39 +134,57 @@ test("a near-size page return is accepted with its size and delta recorded", () 
   assert.deepEqual(fit.delta, { width: -4, height: -7 });
   assert.equal(
     fit.note,
-    "crop: 896x1493 is 4x7 px smaller than 900x1500; the safe box survives",
+    "crop: 896x1493 covers 900x1500 at 1.005x, taking 1x0 px from the edges; the safe box survives the cover fit this rule assumes (nothing crops the art yet)",
   );
 });
 
-test("a page return is accepted only while the crop cannot reach the safe box", () => {
-  // The safe box leaves 93 px between it and the page edge.
-  assert.equal(canvasFit("full-card", 807, 1500).ok, true);
-  assert.equal(canvasFit("full-card", 807, 1500).note.includes("safe box survives"), true);
-  const refused = canvasFit("full-card", 806, 1500);
+test("a page return is accepted only while the cover crop cannot reach the safe box", () => {
+  // The safe box leaves 93 px between it and the page edge. A narrower canvas is
+  // cropped vertically by a cover fit, so the bound lands where the crop per edge
+  // passes 93: 801 px wide is accepted, 800 is not.
+  assert.equal(canvasFit("full-card", 801, 1500).ok, true);
+  assert.equal(canvasFit("full-card", 801, 1500).note.includes("safe box survives"), true);
+  const refused = canvasFit("full-card", 800, 1500);
   assert.equal(refused.ok, false);
-  assert.match(refused.reasons[0], /the crop would lose 1x0 px of the safe box/);
+  assert.match(
+    refused.reasons[0],
+    /cropping 0x188 px, which takes 0x94 px from the edges and reaches the safe box, 93 px from the edge/,
+  );
   assert.equal(refused.note, null);
   const badCrop = canvasFit("full-card", 700, 1500);
   assert.equal(badCrop.ok, false);
-  assert.match(badCrop.reasons[0], /canvas 700x1500 is 200x0 px smaller than the full-card canvas 900x1500; the crop would lose 107x0 px of the safe box/);
+  assert.match(badCrop.reasons[0], /cropping 0x429 px/);
 });
 
-test("a panel return is accepted only while the crop cannot reach the panel", () => {
+test("a panel return is accepted only while the cover crop cannot reach the panel", () => {
   // The panel leaves 75 px at each edge; one pixel is kept for rounding.
-  assert.equal(canvasFit("bordered-panel", 826, 1500).ok, true);
+  assert.equal(canvasFit("bordered-panel", 820, 1500).ok, true);
   assert.match(
-    canvasFit("bordered-panel", 826, 1500).note,
+    canvasFit("bordered-panel", 820, 1500).note,
     /the panel survives/,
   );
-  const refused = canvasFit("bordered-panel", 825, 1500);
+  const refused = canvasFit("bordered-panel", 819, 1500);
   assert.equal(refused.ok, false);
-  assert.match(refused.reasons[0], /the crop would lose 1x0 px of the panel/);
+  assert.match(
+    refused.reasons[0],
+    /0x75 px from the edges and reaches the panel, 74 px from the edge/,
+  );
 });
 
-test("a larger return is accepted and noted", () => {
+test("a larger return is accepted and noted only while cover crops nothing reserved", () => {
   const fit = canvasFit("hybrid", 906, 1500);
   assert.equal(fit.ok, true);
-  assert.equal(fit.note, "crop: 906x1500 is 6x0 px larger than 900x1500; the safe box survives");
+  assert.equal(
+    fit.note,
+    "crop: 906x1500 covers 900x1500 at 1.000x, taking 6x0 px from the edges; the safe box survives the cover fit this rule assumes (nothing crops the art yet)",
+  );
+  // The side a cover fit crops is the large one, and it is bounded too: 300 px of
+  // overhang is 150 per edge, past the 93 px the safe box leaves.
+  const wide = canvasFit("full-card", 1200, 1500);
+  assert.equal(wide.ok, false);
+  assert.match(wide.reasons[0], /cropping 300x0 px, which takes 150x0 px from the edges/);
+  // The same shape at twice the size is a downscale and crops nothing.
+  assert.equal(canvasFit("full-card", 1800, 3000).ok, true);
 });
 
 test("the treatment is inferred from the canvas only when one treatment owns it", () => {
