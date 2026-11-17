@@ -37,7 +37,9 @@ The copy prints on the panel. The frame carries no type and no meaning.
 
 - Art covers the full canvas, including the outer 38 px bleed frame. No pixel in
   that frame may be paper white (luminance 252 or above); a white edge would show
-  after trim.
+  after trim. The validator allows 0.2% of the frame (353 of the frame's 176,624
+  px on a 900 x 1500 canvas), which is slack for rendered noise, not licence for
+  a white edge.
 - The frame runs to the canvas edge on all four sides. It may be a pattern, a
   band, a single drawing that wraps, or flat colour plus accents. It is the
   treatment's freedom.
@@ -95,7 +97,8 @@ above and below it, unmoved.
 - Canvas 900 x 1500, or a returned size whose cover-fit crop cannot reach the
   panel (see `DECISIONS.md` 72).
 - Panel inner edge at least 95% `#ffffff`; panel at least 60% white.
-- Bleed frame at most 0.2% paper white.
+- Bleed frame at most 0.2% paper white (353 of 176,624 px), which is slack for
+  rendered noise; the frame itself carries no paper white.
 - Ink and ground separate by at least 30 of 255, with no two distinct colours
   collapsing to one grey.
 - With a style card, every measured metric inside the card's bands.
